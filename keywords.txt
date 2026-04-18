@@ -1,0 +1,13 @@
+# Syntax coloring for EVolocityChassisController
+# https://arduino.github.io/arduino-cli/latest/library-specification/#keywords
+
+# Class name (KEYWORD1 = orange)
+EVolocityChassisController	KEYWORD1
+
+# Methods (KEYWORD2 = brown/orange)
+begin	KEYWORD2
+setThrottle	KEYWORD2
+setBrake	KEYWORD2
+setSteering	KEYWORD2
+stop	KEYWORD2
+getSpeed	KEYWORD2
