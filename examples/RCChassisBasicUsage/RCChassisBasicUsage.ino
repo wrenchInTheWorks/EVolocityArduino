@@ -8,9 +8,10 @@
     • Listens for a signal from the handheld controller
     • Checks the battery level
     • Updates the status LED:
-        Solid ON  = connected, battery OK
-        Solid OFF = no signal from controller
-        Flashing  = battery needs charging
+        Solid ON     = connected, battery OK
+        Solid OFF    = no signal from controller
+        Slow flash   = battery needs charging
+        Fast flash   = hardware fault — check radio wiring
 */
 
 // Uncomment the next line to print debug info to the Serial Monitor

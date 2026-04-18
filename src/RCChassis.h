@@ -46,9 +46,10 @@ public:
     // ── Call at the top of every loop() ────────────────────────────────────
     // Checks for a new packet from the handheld controller, reads the battery,
     // and updates the status LED automatically.
-    //   LED solid ON  = connected, battery OK
-    //   LED solid OFF = no signal (disconnected)
-    //   LED flashing  = battery low — please charge!
+    //   LED solid ON   = connected, battery OK
+    //   LED solid OFF  = no signal (disconnected)
+    //   LED slow flash = battery low — please charge!
+    //   LED fast flash = hardware fault — check radio wiring (begin() only)
     void update();
 
     // ── Read values sent from the handheld controller ───────────────────────
