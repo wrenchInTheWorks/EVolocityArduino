@@ -1,15 +1,15 @@
-#ifndef EVOLOCITY_CHASSIS_CONTROLLER_H
-#define EVOLOCITY_CHASSIS_CONTROLLER_H
+#ifndef RC_CHASSIS_H
+#define RC_CHASSIS_H
 
 #include <Arduino.h>
 #include <RF24.h>
 #include <Servo.h>
 
-class EVolocityChassisController {
+class RCChassis {
 public:
     // All pins default to the standard EVolocity motor board wiring.
     // Only change them if you have rewired your board.
-    EVolocityChassisController(
+    RCChassis(
         uint8_t cePin    = 7,
         uint8_t csnPin   = 9,
         uint8_t servoPin = 8,
@@ -68,10 +68,10 @@ private:
     bool          _ledState;
 
     static const byte     _address[6];
-    static const uint8_t  _battThreshold = 211;  // ADC value ≈ 6.2 V
-    static const uint16_t _packetTimeoutMs = 500; // ms to wait per call
-    static const uint8_t  _maxMisses = 10;        // consecutive timeouts → disconnected
-    static const uint16_t _flashIntervalMs = 250; // low-batt LED flash rate
+    static const uint8_t  _battThreshold  = 211;  // ADC value ≈ 6.2 V
+    static const uint16_t _packetTimeoutMs = 500;  // ms to wait per call
+    static const uint8_t  _maxMisses      = 10;   // consecutive timeouts → disconnected
+    static const uint16_t _flashIntervalMs = 250;  // low-batt LED flash rate
 };
 
 #endif

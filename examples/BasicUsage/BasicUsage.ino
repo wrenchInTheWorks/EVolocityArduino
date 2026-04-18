@@ -1,6 +1,6 @@
 /*
-  EVolocity Chassis Controller — Basic Usage
-  -------------------------------------------
+  EVolocity — RC Chassis Basic Usage
+  ------------------------------------
   This is all the code you need to drive the car!
 
   waitForPacket() does the hard work for you every loop:
@@ -12,9 +12,9 @@
         Flashing  = connected, but battery needs charging
 */
 
-#include <EVolocityChassisController.h>
+#include <EVolocity.h>
 
-EVolocityChassisController chassis;
+RCChassis chassis;
 
 void setup() {
   chassis.begin();

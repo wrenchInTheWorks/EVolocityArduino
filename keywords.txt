@@ -1,7 +1,7 @@
-# Syntax colouring for EVolocityChassisController
+# Syntax colouring for the EVolocity library
 
-# Class (KEYWORD1 = orange)
-EVolocityChassisController	KEYWORD1
+# Class names (KEYWORD1 = orange)
+RCChassis	KEYWORD1
 
 # Methods (KEYWORD2 = brown/orange)
 begin	KEYWORD2

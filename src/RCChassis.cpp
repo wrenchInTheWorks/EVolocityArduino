@@ -1,10 +1,10 @@
-#include "EVolocityChassisController.h"
+#include "RCChassis.h"
 
-const byte EVolocityChassisController::_address[6] = "00001";
+const byte RCChassis::_address[6] = "00001";
 
 // ── Constructor ─────────────────────────────────────────────────────────────
 
-EVolocityChassisController::EVolocityChassisController(
+RCChassis::RCChassis(
     uint8_t cePin, uint8_t csnPin,
     uint8_t servoPin, uint8_t enaPin, uint8_t in1Pin, uint8_t in2Pin,
     uint8_t battPin, uint8_t ledPin)
@@ -19,7 +19,7 @@ EVolocityChassisController::EVolocityChassisController(
 
 // ── begin() ─────────────────────────────────────────────────────────────────
 
-void EVolocityChassisController::begin() {
+void RCChassis::begin() {
     // Servo
     _servo.attach(_servoPin);
     _servo.write(90);  // centre
@@ -50,9 +50,8 @@ void EVolocityChassisController::begin() {
 
 // ── waitForPacket() ──────────────────────────────────────────────────────────
 
-void EVolocityChassisController::waitForPacket() {
-    // Poll for an incoming packet, giving up after _packetTimeoutMs.
-    unsigned long start   = millis();
+void RCChassis::waitForPacket() {
+    unsigned long start    = millis();
     bool          received = false;
 
     while ((millis() - start) < _packetTimeoutMs) {
@@ -63,7 +62,6 @@ void EVolocityChassisController::waitForPacket() {
         }
     }
 
-    // Update connection state.
     if (received) {
         _missCount = 0;
         _connected = true;
@@ -83,22 +81,18 @@ void EVolocityChassisController::waitForPacket() {
 
 // ── LED logic ────────────────────────────────────────────────────────────────
 
-void EVolocityChassisController::_updateLED() {
+void RCChassis::_updateLED() {
     if (!_connected) {
-        // No signal — LED off.
         digitalWrite(_ledPin, LOW);
         _ledState = false;
         return;
     }
-
     if (!_battLow) {
-        // Connected, battery fine — LED solid on.
         digitalWrite(_ledPin, HIGH);
         _ledState = true;
         return;
     }
-
-    // Connected but battery low — flash LED at _flashIntervalMs rate.
+    // Connected but battery low — flash.
     if ((millis() - _lastFlashMs) >= _flashIntervalMs) {
         _lastFlashMs = millis();
         _ledState    = !_ledState;
@@ -106,27 +100,27 @@ void EVolocityChassisController::_updateLED() {
     }
 }
 
-// ── Student-facing getters ───────────────────────────────────────────────────
+// ── Getters ──────────────────────────────────────────────────────────────────
 
-int EVolocityChassisController::getSteeringAngle() {
+int RCChassis::getSteeringAngle() {
     return constrain(_packet.servoPos, 0, 180);
 }
 
-int EVolocityChassisController::getMotorSpeed() {
+int RCChassis::getMotorSpeed() {
     return constrain(_packet.motorSpeed, 0, 255);
 }
 
-int EVolocityChassisController::getMotorDirection() {
+int RCChassis::getMotorDirection() {
     return constrain(_packet.motorDir, -1, 1);
 }
 
-// ── Student-facing setters ───────────────────────────────────────────────────
+// ── Setters ──────────────────────────────────────────────────────────────────
 
-void EVolocityChassisController::setSteering(int angle) {
+void RCChassis::setSteering(int angle) {
     _servo.write(constrain(angle, 0, 180));
 }
 
-void EVolocityChassisController::setMotor(int speed, int direction) {
+void RCChassis::setMotor(int speed, int direction) {
     speed     = constrain(speed, 0, 255);
     direction = constrain(direction, -1, 1);
 
@@ -143,16 +137,16 @@ void EVolocityChassisController::setMotor(int speed, int direction) {
     analogWrite(_enaPin, speed);
 }
 
-void EVolocityChassisController::stop() {
+void RCChassis::stop() {
     setMotor(0, 0);
 }
 
-// ── Status helpers ───────────────────────────────────────────────────────────
+// ── Status ────────────────────────────────────────────────────────────────────
 
-bool EVolocityChassisController::isBatteryLow() {
+bool RCChassis::isBatteryLow() {
     return _battLow;
 }
 
-bool EVolocityChassisController::isControllerConnected() {
+bool RCChassis::isControllerConnected() {
     return _connected;
 }
