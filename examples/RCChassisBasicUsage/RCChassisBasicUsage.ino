@@ -1,20 +1,21 @@
 /*
-  EVolocityArduino — RC Chassis Basic Usage
-  ------------------------------------------
-  This is all the code you need to drive the car!
+  EVolocityLib — RC Chassis Basic Usage
+  ---------------------------------------
+  This is the code for the CAR. You also need the remote control
+  code loaded on the handheld controller.
 
-  waitForPacket() does the hard work for you every loop:
+  chassis.update() does the hard work for you every loop:
     • Listens for a signal from the handheld controller
     • Checks the battery level
     • Updates the status LED:
         Solid ON  = connected, battery OK
         Solid OFF = no signal from controller
-        Flashing  = connected, but battery needs charging
+        Flashing  = battery needs charging
 */
 
 // Uncomment the next line to print debug info to the Serial Monitor
 // #define EVOLOCITY_DEBUG
-#include <EVolocityArduino.h>
+#include <EVolocityLib.h>
 
 // Set this number to match your handheld controller.
 // Every car on the track must use a different channel (0–125).
@@ -25,9 +26,9 @@ void setup() {
 }
 
 void loop() {
-  // Wait for the latest command from the handheld controller.
-  // This also handles the battery check and status LED.
-  chassis.waitForPacket();
+  // Update the chassis — checks for new commands, reads the battery,
+  // and updates the status LED automatically.
+  chassis.update();
 
   // Read what the controller is asking for...
   int angle     = chassis.getSteeringAngle();   // 0 to 180 degrees

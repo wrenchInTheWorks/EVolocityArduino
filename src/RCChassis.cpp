@@ -60,9 +60,9 @@ void RCChassis::begin() {
     EVPRINTLN("RCChassis ready.");
 }
 
-// ── waitForPacket() ──────────────────────────────────────────────────────────
+// ── update() ─────────────────────────────────────────────────────────────────
 
-void RCChassis::waitForPacket() {
+void RCChassis::update() {
     unsigned long start    = millis();
     bool          received = false;
 
@@ -105,21 +105,22 @@ void RCChassis::waitForPacket() {
 // ── LED logic ────────────────────────────────────────────────────────────────
 
 void RCChassis::_updateLED() {
-    if (!_connected) {
-        digitalWrite(_ledPin, LOW);
-        _ledState = false;
+    // Battery low takes priority — flash regardless of connection state.
+    if (_battLow) {
+        if ((millis() - _lastFlashMs) >= _flashIntervalMs) {
+            _lastFlashMs = millis();
+            _ledState    = !_ledState;
+            digitalWrite(_ledPin, _ledState ? HIGH : LOW);
+        }
         return;
     }
-    if (!_battLow) {
+    // Battery OK — solid ON when connected, OFF when not.
+    if (_connected) {
         digitalWrite(_ledPin, HIGH);
         _ledState = true;
-        return;
-    }
-    // Connected but battery low — flash.
-    if ((millis() - _lastFlashMs) >= _flashIntervalMs) {
-        _lastFlashMs = millis();
-        _ledState    = !_ledState;
-        digitalWrite(_ledPin, _ledState ? HIGH : LOW);
+    } else {
+        digitalWrite(_ledPin, LOW);
+        _ledState = false;
     }
 }
 

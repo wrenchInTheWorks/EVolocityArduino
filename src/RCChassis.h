@@ -44,12 +44,12 @@ public:
     void begin();
 
     // ── Call at the top of every loop() ────────────────────────────────────
-    // Waits up to 500 ms for a packet from the handheld controller.
-    // Also checks the battery and updates the status LED automatically.
+    // Checks for a new packet from the handheld controller, reads the battery,
+    // and updates the status LED automatically.
     //   LED solid ON  = connected, battery OK
     //   LED solid OFF = no signal (disconnected)
-    //   LED flashing  = connected, battery low — please charge!
-    void waitForPacket();
+    //   LED flashing  = battery low — please charge!
+    void update();
 
     // ── Read values sent from the handheld controller ───────────────────────
     int  getSteeringAngle();     // steering angle in degrees (0 – 180)

@@ -5,7 +5,7 @@ RCChassis	KEYWORD1
 
 # Methods (KEYWORD2 = brown/orange)
 begin	KEYWORD2
-waitForPacket	KEYWORD2
+update	KEYWORD2
 getSteeringAngle	KEYWORD2
 getMotorSpeed	KEYWORD2
 getMotorDirection	KEYWORD2
