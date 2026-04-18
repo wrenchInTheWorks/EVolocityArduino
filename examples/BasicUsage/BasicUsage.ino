@@ -12,7 +12,7 @@
         Flashing  = connected, but battery needs charging
 */
 
-#include <EVolocity.h>
+#include <EVolocityArduino.h>
 
 RCChassis chassis;
 

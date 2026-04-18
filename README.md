@@ -1,4 +1,4 @@
-# EVolocity Arduino Library
+# EVolocityArduino
 
 The official Arduino library for EVolocity solar car challenge projects.  
 One install covers all EVolocity hardware — students never need to install anything else.
@@ -11,7 +11,7 @@ One install covers all EVolocity hardware — students never need to install any
 
 ## Installation
 
-Search for **EVolocity** in the Arduino Library Manager.
+Search for **EVolocityArduino** in the Arduino Library Manager.
 
 > **Requires the [RF24](https://github.com/nRF24/RF24) library** — install it from the Library Manager too.
 
@@ -38,7 +38,7 @@ Connection is considered lost after 10 consecutive gaps of more than 500 ms betw
 ### The simplest possible program
 
 ```cpp
-#include <EVolocity.h>
+#include <EVolocityArduino.h>
 
 RCChassis chassis;
 
