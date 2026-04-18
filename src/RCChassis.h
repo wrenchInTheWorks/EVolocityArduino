@@ -5,11 +5,28 @@
 #include <RF24.h>
 #include <Servo.h>
 
+// Uncomment the line below to print debug information to the Serial Monitor.
+// When commented out, all debug code is removed at compile time — zero overhead.
+// #define EVOLOCITY_DEBUG
+
+#ifdef EVOLOCITY_DEBUG
+  #define EVPRINT(x)   Serial.print(x)
+  #define EVPRINTLN(x) Serial.println(x)
+#else
+  #define EVPRINT(x)
+  #define EVPRINTLN(x)
+#endif
+
 class RCChassis {
 public:
-    // All pins default to the standard EVolocity motor board wiring.
+    // channel   — RF24 radio channel (0–125). Every car on the same track
+    //             must use a different channel to avoid interference.
+    //             Match this number to your handheld controller.
+    //
+    // All pin parameters default to the standard EVolocity motor board wiring.
     // Only change them if you have rewired your board.
     RCChassis(
+        uint8_t channel  = 76,
         uint8_t cePin    = 7,
         uint8_t csnPin   = 9,
         uint8_t servoPin = 8,
@@ -57,6 +74,7 @@ private:
     RF24  _radio;
     Servo _servo;
 
+    uint8_t _channel;
     uint8_t _servoPin, _enaPin, _in1Pin, _in2Pin, _battPin, _ledPin;
 
     Packet        _packet;

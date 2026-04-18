@@ -14,7 +14,9 @@
 
 #include <EVolocityArduino.h>
 
-RCChassis chassis;
+// Set this number to match your handheld controller.
+// Every car on the track must use a different channel (0–125).
+RCChassis chassis(76);
 
 void setup() {
   chassis.begin();

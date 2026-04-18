@@ -5,10 +5,12 @@ const byte RCChassis::_address[6] = "00001";
 // ── Constructor ─────────────────────────────────────────────────────────────
 
 RCChassis::RCChassis(
+    uint8_t channel,
     uint8_t cePin, uint8_t csnPin,
     uint8_t servoPin, uint8_t enaPin, uint8_t in1Pin, uint8_t in2Pin,
     uint8_t battPin, uint8_t ledPin)
     : _radio(cePin, csnPin),
+      _channel(channel),
       _servoPin(servoPin), _enaPin(enaPin), _in1Pin(in1Pin), _in2Pin(in2Pin),
       _battPin(battPin), _ledPin(ledPin),
       _battLow(false), _connected(false),
@@ -20,6 +22,12 @@ RCChassis::RCChassis(
 // ── begin() ─────────────────────────────────────────────────────────────────
 
 void RCChassis::begin() {
+#ifdef EVOLOCITY_DEBUG
+    Serial.begin(9600);
+    EVPRINT("EVolocityArduino RCChassis starting on channel ");
+    EVPRINTLN(_channel);
+#endif
+
     // Servo
     _servo.attach(_servoPin);
     _servo.write(90);  // centre
@@ -38,14 +46,18 @@ void RCChassis::begin() {
 
     // Radio — flash LED rapidly on hardware fault so students know immediately.
     if (!_radio.begin()) {
+        EVPRINTLN("ERROR: Radio failed to initialise. Check wiring.");
         while (true) {
             digitalWrite(_ledPin, HIGH); delay(100);
             digitalWrite(_ledPin, LOW);  delay(100);
         }
     }
+    _radio.setChannel(_channel);
     _radio.openReadingPipe(0, _address);
     _radio.setPALevel(RF24_PA_LOW);
     _radio.startListening();
+
+    EVPRINTLN("RCChassis ready.");
 }
 
 // ── waitForPacket() ──────────────────────────────────────────────────────────
@@ -65,15 +77,26 @@ void RCChassis::waitForPacket() {
     if (received) {
         _missCount = 0;
         _connected = true;
+        EVPRINT("Packet received — steering: "); EVPRINT(_packet.servoPos);
+        EVPRINT("  speed: ");                    EVPRINT(_packet.motorSpeed);
+        EVPRINT("  dir: ");                      EVPRINTLN(_packet.motorDir);
     } else {
         if (_missCount < _maxMisses) _missCount++;
         if (_missCount >= _maxMisses) _connected = false;
+        EVPRINT("No packet (miss ");
+        EVPRINT(_missCount);
+        EVPRINT("/");
+        EVPRINT(_maxMisses);
+        EVPRINTLN(_connected ? ")" : ") — DISCONNECTED");
     }
 
     // Battery check — at most once per second to avoid slowing the loop.
     if ((millis() - _lastBattCheckMs) >= 1000UL) {
-        _lastBattCheckMs = millis();
-        _battLow = (analogRead(_battPin) < _battThreshold);
+        _lastBattCheckMs  = millis();
+        int reading       = analogRead(_battPin);
+        _battLow          = (reading < _battThreshold);
+        EVPRINT("Battery ADC: "); EVPRINT(reading);
+        EVPRINTLN(_battLow ? " — LOW" : " — OK");
     }
 
     _updateLED();
@@ -117,12 +140,16 @@ int RCChassis::getMotorDirection() {
 // ── Setters ──────────────────────────────────────────────────────────────────
 
 void RCChassis::setSteering(int angle) {
-    _servo.write(constrain(angle, 0, 180));
+    angle = constrain(angle, 0, 180);
+    EVPRINT("setSteering: "); EVPRINTLN(angle);
+    _servo.write(angle);
 }
 
 void RCChassis::setMotor(int speed, int direction) {
     speed     = constrain(speed, 0, 255);
     direction = constrain(direction, -1, 1);
+    EVPRINT("setMotor: speed="); EVPRINT(speed);
+    EVPRINT(" dir=");            EVPRINTLN(direction);
 
     if (direction == 1) {
         digitalWrite(_in1Pin, HIGH);
@@ -138,6 +165,7 @@ void RCChassis::setMotor(int speed, int direction) {
 }
 
 void RCChassis::stop() {
+    EVPRINTLN("stop()");
     setMotor(0, 0);
 }
 
