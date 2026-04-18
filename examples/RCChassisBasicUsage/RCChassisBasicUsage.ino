@@ -1,6 +1,6 @@
 /*
-  EVolocityArduino — RC Car Basic Usage
-  ---------------------------------------
+  EVolocityArduino — RC Chassis Basic Usage
+  ------------------------------------------
   This is all the code you need to drive the car!
 
   waitForPacket() does the hard work for you every loop:
