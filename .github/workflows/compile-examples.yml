@@ -1,0 +1,63 @@
+name: Compile Examples
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  # ── Job 1 ──────────────────────────────────────────────────────────────────
+  # Checks that every class defined in src/*.h appears in at least one example
+  # sketch. Catches the case where a new class is added without an example,
+  # which would also mean it never gets compiled by Job 2.
+  check-class-coverage:
+    name: Every class has an example
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check each class is used in at least one example
+        run: |
+          MISSING=false
+
+          # Extract class names from all headers in src/
+          CLASSES=$(grep -rh '^class ' src/*.h | sed 's/class \([A-Za-z_]*\).*/\1/')
+
+          if [ -z "$CLASSES" ]; then
+            echo "No classes found in src/ — nothing to check."
+            exit 0
+          fi
+
+          for CLASS in $CLASSES; do
+            if grep -rq "$CLASS" examples/ --include="*.ino"; then
+              echo "OK : $CLASS"
+            else
+              echo "MISSING EXAMPLE : $CLASS"
+              MISSING=true
+            fi
+          done
+
+          if [ "$MISSING" = "true" ]; then
+            echo ""
+            echo "One or more classes have no example sketch."
+            echo "Add an example under examples/<SketchName>/<SketchName>.ino that uses the class."
+            exit 1
+          fi
+
+  # ── Job 2 ──────────────────────────────────────────────────────────────────
+  # Compiles every sketch found under examples/ against the Arduino Nano
+  # (ATmega328P). Any build error in the library or example code fails the PR.
+  compile:
+    name: Compile all examples (Arduino Nano)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: arduino/compile-sketches@v1
+        with:
+          fqbn: arduino:avr:nano:cpu=atmega328p
+          sketch-paths: examples/
+          libraries: |
+            - name: RF24
+            - source-path: ./

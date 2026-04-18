@@ -1,0 +1,20 @@
+name: Arduino Lint
+
+# Validates library structure against Arduino Library Manager requirements.
+# Uses 'submit' mode — the strictest level, matching what the Library Manager
+# itself checks before accepting a submission.
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/arduino-lint-action@v1
+        with:
+          library-manager: submit
+          compliance: strict
