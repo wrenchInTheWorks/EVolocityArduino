@@ -1,4 +1,4 @@
-# Syntax colouring for the EVolocityArduino library
+# Syntax colouring for the EVolocityLib library
 
 # Class names (KEYWORD1 = orange)
 RCChassis	KEYWORD1

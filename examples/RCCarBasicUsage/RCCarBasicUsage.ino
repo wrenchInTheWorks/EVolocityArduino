@@ -1,5 +1,5 @@
 /*
-  EVolocityArduino — RC Car Basic Usage
+  EVolocityLib — RC Car Basic Usage
   ---------------------------------------
   This is all the code you need to drive the car!
 
@@ -14,7 +14,7 @@
 
 // Uncomment the next line to print debug info to the Serial Monitor
 // #define EVOLOCITY_DEBUG
-#include <EVolocityArduino.h>
+#include <EVolocityLib.h>
 
 // Set this number to match your handheld controller.
 // Every car on the track must use a different channel (0–125).
