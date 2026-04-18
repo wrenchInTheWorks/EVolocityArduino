@@ -4,10 +4,19 @@ An Arduino library that makes controlling the EVolocity RC car chassis as simple
 
 ## What it does for you automatically
 
-- Receives steering and speed commands from the handheld controller **over radio** (using a hardware interrupt — no polling needed)
-- Checks the **battery level every second** and lights the low-battery LED (using a timer interrupt)
+Call `chassis.waitForPacket()` at the top of `loop()` and the library handles:
 
-You don't need to write any code for either of those things. Just call the simple functions below.
+- **Receiving** the latest steering and speed packet from the handheld controller
+- **Checking the battery** level once per second
+- **Updating the status LED** on the board:
+
+| LED | Meaning |
+|-----|---------|
+| Solid ON | Connected to controller, battery OK |
+| Solid OFF | No signal from controller |
+| Flashing | Connected, but battery needs charging |
+
+Connection is considered lost after 10 consecutive gaps of more than 500 ms between packets.
 
 ## Installation
 
@@ -36,10 +45,11 @@ That's it. The car will follow the controller.
 
 ## Full API
 
-### Setup
+### Setup & background tasks
 | Function | What it does |
 |----------|--------------|
 | `chassis.begin()` | Start everything up. Call once in `setup()`. |
+| `chassis.waitForPacket()` | Wait for a packet from the controller (up to 500 ms). Also checks battery and updates the status LED. Call at the top of `loop()`. |
 
 ### Reading the controller
 | Function | Returns | Description |
@@ -67,7 +77,6 @@ That's it. The car will follow the controller.
 |--------|-------------|
 | RF24 CE | 7 |
 | RF24 CSN | 9 |
-| RF24 IRQ | 2 |
 | Servo | 8 |
 | L298N ENA (PWM) | 3 |
 | L298N IN1 | 5 |
@@ -79,7 +88,7 @@ Pin assignments can be changed by passing them to the constructor — see the he
 
 ## Compatibility
 
-Requires an **AVR-based Arduino** (Uno, Nano, Mega). Uses Timer2 and external interrupts.
+Compatible with any Arduino board (`architectures=*`). Tested on Uno and Nano.
 
 ## License
 

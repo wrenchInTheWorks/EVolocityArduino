@@ -1,43 +1,25 @@
 #include "EVolocityChassisController.h"
 
-// ── Static data ────────────────────────────────────────────────────────────
-
 const byte EVolocityChassisController::_address[6] = "00001";
 
-// Global instance pointer — used by the two ISR free functions below.
-static EVolocityChassisController* _instance = nullptr;
-
-// Radio IRQ fires (FALLING) when a packet arrives.
-static void _radioISR() {
-    if (_instance) _instance->_handleRadioIRQ();
-}
-
-// Timer2 overflow fires every ~16.4 ms (16 MHz, prescaler 1024).
-ISR(TIMER2_OVF_vect) {
-    if (_instance) _instance->_handleTimerOverflow();
-}
-
-// ── Constructor ────────────────────────────────────────────────────────────
+// ── Constructor ─────────────────────────────────────────────────────────────
 
 EVolocityChassisController::EVolocityChassisController(
-    uint8_t cePin, uint8_t csnPin, uint8_t irqPin,
+    uint8_t cePin, uint8_t csnPin,
     uint8_t servoPin, uint8_t enaPin, uint8_t in1Pin, uint8_t in2Pin,
     uint8_t battPin, uint8_t ledPin)
     : _radio(cePin, csnPin),
-      _irqPin(irqPin), _servoPin(servoPin),
-      _enaPin(enaPin), _in1Pin(in1Pin), _in2Pin(in2Pin),
+      _servoPin(servoPin), _enaPin(enaPin), _in1Pin(in1Pin), _in2Pin(in2Pin),
       _battPin(battPin), _ledPin(ledPin),
-      _radioFlag(false), _battCheckDue(false), _timerTicks(0),
-      _battLow(false), _lastPacketMs(0)
+      _battLow(false), _connected(false),
+      _missCount(0), _lastBattCheckMs(0), _lastFlashMs(0), _ledState(false)
 {
     _packet = {90, 0, 0};  // safe defaults: centred steering, motor off
 }
 
-// ── begin() ────────────────────────────────────────────────────────────────
+// ── begin() ─────────────────────────────────────────────────────────────────
 
 void EVolocityChassisController::begin() {
-    _instance = this;
-
     // Servo
     _servo.attach(_servoPin);
     _servo.write(90);  // centre
@@ -50,96 +32,101 @@ void EVolocityChassisController::begin() {
     digitalWrite(_in1Pin, LOW);
     digitalWrite(_in2Pin, LOW);
 
-    // Battery LED
+    // Status LED
     pinMode(_ledPin, OUTPUT);
     digitalWrite(_ledPin, LOW);
 
-    // Radio
+    // Radio — flash LED rapidly on hardware fault so students know immediately.
     if (!_radio.begin()) {
-        // Flash the LED rapidly to signal a hardware fault.
         while (true) {
             digitalWrite(_ledPin, HIGH); delay(100);
             digitalWrite(_ledPin, LOW);  delay(100);
         }
     }
-    // Only trigger IRQ for RX — ignore TX events.
-    _radio.maskIRQ(true, true, false);
     _radio.openReadingPipe(0, _address);
     _radio.setPALevel(RF24_PA_LOW);
     _radio.startListening();
-
-    // Attach radio IRQ on falling edge (pin goes LOW when packet arrives).
-    pinMode(_irqPin, INPUT);
-    attachInterrupt(digitalPinToInterrupt(_irqPin), _radioISR, FALLING);
-
-    // Timer2: normal mode, prescaler 1024 → overflow every ~16.4 ms.
-    TCCR2A = 0;
-    TCCR2B = (1 << CS22) | (1 << CS21) | (1 << CS20);
-    TIMSK2 = (1 << TOIE2);
 }
 
-// ── ISR handlers ───────────────────────────────────────────────────────────
+// ── waitForPacket() ──────────────────────────────────────────────────────────
 
-void EVolocityChassisController::_handleRadioIRQ() {
-    _radioFlag = true;
-    // Actual SPI read happens in _processFlags() (non-ISR context).
-}
+void EVolocityChassisController::waitForPacket() {
+    // Poll for an incoming packet, giving up after _packetTimeoutMs.
+    unsigned long start   = millis();
+    bool          received = false;
 
-void EVolocityChassisController::_handleTimerOverflow() {
-    if (++_timerTicks >= _ticksPerSecond) {
-        _timerTicks    = 0;
-        _battCheckDue  = true;
-    }
-}
-
-// ── Internal flag processing ───────────────────────────────────────────────
-
-void EVolocityChassisController::_processFlags() {
-    // Process incoming radio packet.
-    if (_radioFlag) {
-        _radioFlag = false;
-        bool txOk, txFail, rxReady;
-        _radio.whatHappened(txOk, txFail, rxReady);
-        if (rxReady && _radio.available()) {
+    while ((millis() - start) < _packetTimeoutMs) {
+        if (_radio.available()) {
             _radio.read(&_packet, sizeof(_packet));
-            _lastPacketMs = millis();
+            received = true;
+            break;
         }
     }
 
-    // Check battery level (~once per second).
-    if (_battCheckDue) {
-        _battCheckDue = false;
+    // Update connection state.
+    if (received) {
+        _missCount = 0;
+        _connected = true;
+    } else {
+        if (_missCount < _maxMisses) _missCount++;
+        if (_missCount >= _maxMisses) _connected = false;
+    }
+
+    // Battery check — at most once per second to avoid slowing the loop.
+    if ((millis() - _lastBattCheckMs) >= 1000UL) {
+        _lastBattCheckMs = millis();
         _battLow = (analogRead(_battPin) < _battThreshold);
-        digitalWrite(_ledPin, _battLow ? HIGH : LOW);
+    }
+
+    _updateLED();
+}
+
+// ── LED logic ────────────────────────────────────────────────────────────────
+
+void EVolocityChassisController::_updateLED() {
+    if (!_connected) {
+        // No signal — LED off.
+        digitalWrite(_ledPin, LOW);
+        _ledState = false;
+        return;
+    }
+
+    if (!_battLow) {
+        // Connected, battery fine — LED solid on.
+        digitalWrite(_ledPin, HIGH);
+        _ledState = true;
+        return;
+    }
+
+    // Connected but battery low — flash LED at _flashIntervalMs rate.
+    if ((millis() - _lastFlashMs) >= _flashIntervalMs) {
+        _lastFlashMs = millis();
+        _ledState    = !_ledState;
+        digitalWrite(_ledPin, _ledState ? HIGH : LOW);
     }
 }
 
-// ── Student-facing getters ─────────────────────────────────────────────────
+// ── Student-facing getters ───────────────────────────────────────────────────
 
 int EVolocityChassisController::getSteeringAngle() {
-    _processFlags();
     return constrain(_packet.servoPos, 0, 180);
 }
 
 int EVolocityChassisController::getMotorSpeed() {
-    _processFlags();
     return constrain(_packet.motorSpeed, 0, 255);
 }
 
 int EVolocityChassisController::getMotorDirection() {
-    _processFlags();
     return constrain(_packet.motorDir, -1, 1);
 }
 
-// ── Student-facing setters ─────────────────────────────────────────────────
+// ── Student-facing setters ───────────────────────────────────────────────────
 
 void EVolocityChassisController::setSteering(int angle) {
-    _processFlags();
     _servo.write(constrain(angle, 0, 180));
 }
 
 void EVolocityChassisController::setMotor(int speed, int direction) {
-    _processFlags();
     speed     = constrain(speed, 0, 255);
     direction = constrain(direction, -1, 1);
 
@@ -160,12 +147,12 @@ void EVolocityChassisController::stop() {
     setMotor(0, 0);
 }
 
-// ── Status helpers ─────────────────────────────────────────────────────────
+// ── Status helpers ───────────────────────────────────────────────────────────
 
 bool EVolocityChassisController::isBatteryLow() {
     return _battLow;
 }
 
 bool EVolocityChassisController::isControllerConnected() {
-    return (millis() - _lastPacketMs) < _timeoutMs;
+    return _connected;
 }
