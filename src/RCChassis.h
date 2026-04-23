@@ -20,6 +20,13 @@
   #define EVPRINTLN(x)
 #endif
 
+// Status packet sent back to the controller on every received transmission.
+// The RCRemote class reads this automatically.
+struct ChassisStatus {
+    int  batteryADC;  // raw ADC reading (0–1023)
+    bool batteryLow;  // true = battery needs charging (mirrors slow-flash LED)
+};
+
 class RCChassis {
 public:
     // channel   — RF24 radio channel (0–125). Every car on the same track
@@ -44,12 +51,13 @@ public:
     void begin();
 
     // ── Call at the top of every loop() ────────────────────────────────────
-    // Waits up to 500 ms for a packet from the handheld controller.
-    // Also checks the battery and updates the status LED automatically.
-    //   LED solid ON  = connected, battery OK
-    //   LED solid OFF = no signal (disconnected)
-    //   LED flashing  = connected, battery low — please charge!
-    void waitForPacket();
+    // Checks for a new packet from the handheld controller, reads the battery,
+    // updates the status LED, and sends chassis status back to the controller.
+    //   LED solid ON   = connected, battery OK
+    //   LED solid OFF  = no signal (disconnected)
+    //   LED slow flash = battery low — please charge!
+    //   LED fast flash = hardware fault — check radio wiring (begin() only)
+    void update();
 
     // ── Read values sent from the handheld controller ───────────────────────
     int  getSteeringAngle();     // steering angle in degrees (0 – 180)
@@ -58,21 +66,32 @@ public:
 
     // ── Send commands to the car ────────────────────────────────────────────
     void setSteering(int angle);              // 0 – 180 degrees
+
+    // Basic motor control — good for simple code.
+    //   speed == 0     → hard brake
+    //   direction == 0 → coast
+    // Use the functions below for explicit control.
     void setMotor(int speed, int direction);  // speed 0–255, direction -1/0/1
-    void stop();                              // cut motor instantly
+
+    // Advanced motor control
+    void forward(int speed);  // drive forward at speed (0–255)
+    void reverse(int speed);  // drive in reverse at speed (0–255)
+    void coast();             // free wheel — motor spins down on its own
+    void stop();              // hard brake — motor stops immediately
 
     // ── Status helpers ──────────────────────────────────────────────────────
     bool isBatteryLow();           // true when battery needs charging
     bool isControllerConnected();  // true when radio packets are arriving
 
 private:
-    struct Packet {
+    struct ControlPacket {
         int servoPos;   // 0 – 180
         int motorSpeed; // 0 – 255
         int motorDir;   // -1, 0, +1
     };
 
     void _updateLED();
+    void _loadAckPayload();  // pre-loads status for next received packet
 
     RF24  _radio;
     Servo _servo;
@@ -80,7 +99,8 @@ private:
     uint8_t _channel;
     uint8_t _servoPin, _enaPin, _in1Pin, _in2Pin, _battPin, _ledPin;
 
-    Packet        _packet;
+    ControlPacket _packet;
+    ChassisStatus _status;
     bool          _battLow;
     bool          _connected;
     uint8_t       _missCount;

@@ -55,14 +55,19 @@ void RCChassis::begin() {
     _radio.setChannel(_channel);
     _radio.openReadingPipe(0, _address);
     _radio.setPALevel(RF24_PA_LOW);
+    _radio.enableAckPayload();
+    _radio.enableDynamicPayloads();
     _radio.startListening();
+
+    _status = {0, false};
+    _loadAckPayload();
 
     EVPRINTLN("RCChassis ready.");
 }
 
-// ── waitForPacket() ──────────────────────────────────────────────────────────
+// ── update() ─────────────────────────────────────────────────────────────────
 
-void RCChassis::waitForPacket() {
+void RCChassis::update() {
     unsigned long start    = millis();
     bool          received = false;
 
@@ -80,6 +85,7 @@ void RCChassis::waitForPacket() {
         EVPRINT("Packet received — steering: "); EVPRINT(_packet.servoPos);
         EVPRINT("  speed: ");                    EVPRINT(_packet.motorSpeed);
         EVPRINT("  dir: ");                      EVPRINTLN(_packet.motorDir);
+        _loadAckPayload();
     } else {
         if (_missCount < _maxMisses) _missCount++;
         if (_missCount >= _maxMisses) _connected = false;
@@ -95,8 +101,13 @@ void RCChassis::waitForPacket() {
         _lastBattCheckMs  = millis();
         int reading       = analogRead(_battPin);
         _battLow          = (reading < _battThreshold);
+        _status.batteryADC = reading;
+        _status.batteryLow = _battLow;
         EVPRINT("Battery ADC: "); EVPRINT(reading);
         EVPRINTLN(_battLow ? " — LOW" : " — OK");
+        EVPRINT("Status queued — ADC: "); EVPRINT(_status.batteryADC);
+        EVPRINTLN(_status.batteryLow ? "  battLow: true" : "  battLow: false");
+        _loadAckPayload();
     }
 
     _updateLED();
@@ -105,22 +116,29 @@ void RCChassis::waitForPacket() {
 // ── LED logic ────────────────────────────────────────────────────────────────
 
 void RCChassis::_updateLED() {
-    if (!_connected) {
-        digitalWrite(_ledPin, LOW);
-        _ledState = false;
+    // Battery low takes priority — flash regardless of connection state.
+    if (_battLow) {
+        if ((millis() - _lastFlashMs) >= _flashIntervalMs) {
+            _lastFlashMs = millis();
+            _ledState    = !_ledState;
+            digitalWrite(_ledPin, _ledState ? HIGH : LOW);
+        }
         return;
     }
-    if (!_battLow) {
+    // Battery OK — solid ON when connected, OFF when not.
+    if (_connected) {
         digitalWrite(_ledPin, HIGH);
         _ledState = true;
-        return;
+    } else {
+        digitalWrite(_ledPin, LOW);
+        _ledState = false;
     }
-    // Connected but battery low — flash.
-    if ((millis() - _lastFlashMs) >= _flashIntervalMs) {
-        _lastFlashMs = millis();
-        _ledState    = !_ledState;
-        digitalWrite(_ledPin, _ledState ? HIGH : LOW);
-    }
+}
+
+// ── ACK payload ──────────────────────────────────────────────────────────────
+
+void RCChassis::_loadAckPayload() {
+    _radio.writeAckPayload(0, &_status, sizeof(_status));
 }
 
 // ── Getters ──────────────────────────────────────────────────────────────────
@@ -151,22 +169,39 @@ void RCChassis::setMotor(int speed, int direction) {
     EVPRINT("setMotor: speed="); EVPRINT(speed);
     EVPRINT(" dir=");            EVPRINTLN(direction);
 
-    if (direction == 1) {
-        digitalWrite(_in1Pin, HIGH);
-        digitalWrite(_in2Pin, LOW);
-    } else if (direction == -1) {
-        digitalWrite(_in1Pin, LOW);
-        digitalWrite(_in2Pin, HIGH);
-    } else {
-        digitalWrite(_in1Pin, LOW);
-        digitalWrite(_in2Pin, LOW);
-    }
+    if      (speed == 0)      stop();
+    else if (direction == 0)  coast();
+    else if (direction == 1)  forward(speed);
+    else                      reverse(speed);
+}
+
+void RCChassis::forward(int speed) {
+    speed = constrain(speed, 0, 255);
+    EVPRINT("forward: "); EVPRINTLN(speed);
+    digitalWrite(_in1Pin, HIGH);
+    digitalWrite(_in2Pin, LOW);
     analogWrite(_enaPin, speed);
+}
+
+void RCChassis::reverse(int speed) {
+    speed = constrain(speed, 0, 255);
+    EVPRINT("reverse: "); EVPRINTLN(speed);
+    digitalWrite(_in1Pin, LOW);
+    digitalWrite(_in2Pin, HIGH);
+    analogWrite(_enaPin, speed);
+}
+
+void RCChassis::coast() {
+    EVPRINTLN("coast()");
+    digitalWrite(_enaPin, LOW);
 }
 
 void RCChassis::stop() {
     EVPRINTLN("stop()");
-    setMotor(0, 0);
+    // Hard brake — both IN pins LOW with ENA HIGH shorts motor terminals to GND.
+    digitalWrite(_in1Pin, LOW);
+    digitalWrite(_in2Pin, LOW);
+    digitalWrite(_enaPin, HIGH);
 }
 
 // ── Status ────────────────────────────────────────────────────────────────────

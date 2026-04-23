@@ -60,4 +60,5 @@ jobs:
           sketch-paths: examples/
           libraries: |
             - name: RF24
+            - name: Servo
             - source-path: ./
