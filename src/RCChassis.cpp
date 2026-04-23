@@ -24,7 +24,7 @@ RCChassis::RCChassis(
 void RCChassis::begin() {
 #ifdef EVOLOCITY_DEBUG
     Serial.begin(9600);
-    EVPRINT("EVolocityArduino RCChassis starting on channel ");
+    EVPRINT("EVolocityLib RCChassis starting on channel");
     EVPRINTLN(_channel);
 #endif
 

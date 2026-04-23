@@ -56,7 +56,7 @@ jobs:
 
       - uses: arduino/compile-sketches@v1
         with:
-          fqbn: arduino:avr:nano:cpu=atmega328p
+          fqbn: arduino:avr:nano:cpu=atmega328
           sketch-paths: examples/
           libraries: |
             - name: RF24
