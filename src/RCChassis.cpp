@@ -147,27 +147,42 @@ void RCChassis::setSteering(int angle) {
 }
 
 void RCChassis::setMotor(int speed, int direction) {
-    speed     = constrain(speed, 0, 255);
     direction = constrain(direction, -1, 1);
     EVPRINT("setMotor: speed="); EVPRINT(speed);
     EVPRINT(" dir=");            EVPRINTLN(direction);
 
-    if (direction == 1) {
-        digitalWrite(_in1Pin, HIGH);
-        digitalWrite(_in2Pin, LOW);
-    } else if (direction == -1) {
-        digitalWrite(_in1Pin, LOW);
-        digitalWrite(_in2Pin, HIGH);
-    } else {
-        digitalWrite(_in1Pin, LOW);
-        digitalWrite(_in2Pin, LOW);
-    }
+    if      (direction ==  1) forward(speed);
+    else if (direction == -1) reverse(speed);
+    else                      coast();
+}
+
+void RCChassis::forward(int speed) {
+    speed = constrain(speed, 0, 255);
+    EVPRINT("forward: "); EVPRINTLN(speed);
+    digitalWrite(_in1Pin, HIGH);
+    digitalWrite(_in2Pin, LOW);
     analogWrite(_enaPin, speed);
+}
+
+void RCChassis::reverse(int speed) {
+    speed = constrain(speed, 0, 255);
+    EVPRINT("reverse: "); EVPRINTLN(speed);
+    digitalWrite(_in1Pin, LOW);
+    digitalWrite(_in2Pin, HIGH);
+    analogWrite(_enaPin, speed);
+}
+
+void RCChassis::coast() {
+    EVPRINTLN("coast()");
+    digitalWrite(_enaPin, LOW);
 }
 
 void RCChassis::stop() {
     EVPRINTLN("stop()");
-    setMotor(0, 0);
+    // Hard brake — both IN pins LOW with ENA HIGH shorts motor terminals to GND.
+    digitalWrite(_in1Pin, LOW);
+    digitalWrite(_in2Pin, LOW);
+    digitalWrite(_enaPin, HIGH);
 }
 
 // ── Status ────────────────────────────────────────────────────────────────────

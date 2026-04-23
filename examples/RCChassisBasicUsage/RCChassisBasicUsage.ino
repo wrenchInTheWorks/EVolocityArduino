@@ -39,4 +39,10 @@ void loop() {
   // ...and make the car do it.
   chassis.setSteering(angle);
   chassis.setMotor(speed, direction);
+
+  // Want more control? Try replacing setMotor() with these:
+  //   chassis.forward(speed)  — drive forward
+  //   chassis.reverse(speed)  — drive in reverse
+  //   chassis.coast()         — free wheel (motor spins down on its own)
+  //   chassis.stop()          — hard brake (stops immediately)
 }

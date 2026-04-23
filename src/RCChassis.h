@@ -59,8 +59,16 @@ public:
 
     // ── Send commands to the car ────────────────────────────────────────────
     void setSteering(int angle);              // 0 – 180 degrees
+
+    // Basic motor control — coasts to a stop when direction is 0.
+    // Good for simple code; use the functions below for more control.
     void setMotor(int speed, int direction);  // speed 0–255, direction -1/0/1
-    void stop();                              // cut motor instantly
+
+    // Advanced motor control
+    void forward(int speed);  // drive forward at speed (0–255)
+    void reverse(int speed);  // drive in reverse at speed (0–255)
+    void coast();             // free wheel — motor spins down on its own
+    void stop();              // hard brake — motor stops immediately
 
     // ── Status helpers ──────────────────────────────────────────────────────
     bool isBatteryLow();           // true when battery needs charging
