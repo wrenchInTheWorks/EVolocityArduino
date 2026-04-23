@@ -40,9 +40,13 @@ void loop() {
   chassis.setSteering(angle);
   chassis.setMotor(speed, direction);
 
-  // Want more control? Try replacing setMotor() with these:
-  //   chassis.forward(speed)  — drive forward
-  //   chassis.reverse(speed)  — drive in reverse
-  //   chassis.coast()         — free wheel (motor spins down on its own)
-  //   chassis.stop()          — hard brake (stops immediately)
+  // setMotor() already handles these automatically:
+  //   speed == 0     → hard brake  (motor stops immediately)
+  //   direction == 0 → coast       (motor spins down on its own)
+  //
+  // Want more control? Call these directly instead of setMotor():
+  //   chassis.forward(speed)  — drive forward at speed (0–255)
+  //   chassis.reverse(speed)  — drive in reverse at speed (0–255)
+  //   chassis.stop()          — hard brake
+  //   chassis.coast()         — free wheel
 }
