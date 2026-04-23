@@ -2,6 +2,7 @@
 
 # Class names (KEYWORD1 = orange)
 RCChassis	KEYWORD1
+RCRemote	KEYWORD1
 
 # Methods (KEYWORD2 = brown/orange)
 begin	KEYWORD2
@@ -17,3 +18,7 @@ coast	KEYWORD2
 stop	KEYWORD2
 isBatteryLow	KEYWORD2
 isControllerConnected	KEYWORD2
+isCarConnected	KEYWORD2
+isRemoteBatteryLow	KEYWORD2
+isCarBatteryLow	KEYWORD2
+getCarBatteryADC	KEYWORD2
